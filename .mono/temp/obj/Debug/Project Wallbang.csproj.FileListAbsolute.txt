@@ -1,0 +1,5 @@
+G:\godot\godot-projects\project-wallbang\.mono\temp\bin\Debug\Project Wallbang.dll
+G:\godot\godot-projects\project-wallbang\.mono\temp\bin\Debug\Project Wallbang.pdb
+G:\godot\godot-projects\project-wallbang\.mono\temp\obj\Debug\Project Wallbang.csprojAssemblyReference.cache
+G:\godot\godot-projects\project-wallbang\.mono\temp\obj\Debug\Project Wallbang.dll
+G:\godot\godot-projects\project-wallbang\.mono\temp\obj\Debug\Project Wallbang.pdb

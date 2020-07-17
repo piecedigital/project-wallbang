@@ -1,0 +1,36 @@
+[gd_resource type="VisualShader" load_steps=2 format=2]
+
+[sub_resource type="VisualShaderNodeColorOp" id=1]
+default_input_values = [ 0, Vector3( 0.75, 0.75, 0.75 ), 1, Vector3( 0, 0, 0 ) ]
+
+[resource]
+code = "shader_type spatial;
+
+
+
+void vertex() {
+// Output:0
+
+}
+
+void fragment() {
+// ColorOp:2
+	vec3 n_in2p0 = vec3(0.75000, 0.75000, 0.75000);
+	vec3 n_in2p1 = vec3(0.00000, 0.00000, 0.00000);
+	vec3 n_out2p0 = vec3(1.0) - (vec3(1.0) - n_in2p0) * (vec3(1.0) - n_in2p1);
+
+// Output:0
+	ALBEDO = n_out2p0;
+
+}
+
+void light() {
+// Output:0
+
+}
+"
+graph_offset = Vector2( -402, 71 )
+nodes/fragment/0/position = Vector2( 400, 160 )
+nodes/fragment/2/node = SubResource( 1 )
+nodes/fragment/2/position = Vector2( 60, 160 )
+nodes/fragment/connections = PoolIntArray( 2, 0, 0, 0, 2, 0, 0, 0 )

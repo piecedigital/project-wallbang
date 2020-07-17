@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://Scripts/Gameplay/Player.cs" type="Script" id=1]
+
+[sub_resource type="CapsuleShape" id=1]
+radius = 0.349203
+
+[sub_resource type="CapsuleMesh" id=2]
+radius = 0.35
+
+[sub_resource type="CubeMesh" id=3]
+size = Vector3( 0.342, 0.246, 0.102 )
+
+[node name="Player" type="KinematicBody"]
+script = ExtResource( 1 )
+hLookSens = 0.3
+vLookSens = 0.3
+
+[node name="CollisionShape" type="CollisionShape" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
+shape = SubResource( 1 )
+
+[node name="CSGMesh" type="CSGMesh" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
+mesh = SubResource( 2 )
+
+[node name="CSGMesh2" type="CSGMesh" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.578, -0.398 )
+mesh = SubResource( 3 )
