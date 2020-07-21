@@ -8,6 +8,7 @@ public class Main : Spatial
     public static Player localPlayer = null;
     public static bool debugDraw = true;
     public static CameraController camera;
+    public static Control ui;
 
     PackedScene scene;
 
@@ -18,9 +19,10 @@ public class Main : Spatial
     public override void _Ready()
     {
         instance = this;
-        scene = ResourceLoader.Load<PackedScene>("res://Scenes/Test.tscn");
+        scene = ResourceLoader.Load<PackedScene>("res://Scenes/Maps/Test.tscn");
         AddChild(scene.Instance());
         camera = GetNode("Camera") as CameraController;
+        ui = GetNode("UI") as Control;
 
         SpawnPlayers();
     }
@@ -47,12 +49,11 @@ public class Main : Spatial
             var rng = new RandomNumberGenerator();
             int index = rng.RandiRange(0, children.Count-1);
             Spatial spawner = children[index] as Spatial;
-            Player player = ResourceLoader.Load<PackedScene>("res://Scenes/Player.tscn")
+            Player player = ResourceLoader.Load<PackedScene>("res://Scenes/Characters/Player.tscn")
                 .Instance() as Player;
             GetNode("PlayerInstances").AddChild(player);
 
             var newPos = spawner.Translation;
-            newPos.y += player.GetNode<CollisionShape>("CollisionShape").Scale.y / 2;
             var newTrans = player.GlobalTransform;
             newTrans.origin = newPos;
             player.GlobalTransform = newTrans;

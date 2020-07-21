@@ -1,13 +1,15 @@
 using Godot;
+using System.Collections.Generic;
 
 public class Bullet : Node
 {
     ImmediateGeometry debugDrawNode;
     SpatialMaterial material;
     Vector3 start;
-    Vector3 end;
     bool calcDone = false;
-    int distance = 1000;
+    float distance = 1000.0f;
+    List<List<Vector3>> stepPoints;
+    PhysicsDirectSpaceState spaceState;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -15,15 +17,15 @@ public class Bullet : Node
         if (start == null) {
             start = new Vector3();
         }
-        if (end == null) {
-            end = new Vector3();
-        }
+
+        stepPoints = new List<List<Vector3>>();
 
         debugDrawNode = Main.instance.GetNode("DebugDraw") as ImmediateGeometry;
         material = new SpatialMaterial();
         material.FlagsUnshaded = true;
         material.FlagsUsePointSize = true;
-        material.AlbedoColor = Colors.Green;
+        material.FlagsNoDepthTest = true;
+        debugDrawNode.MaterialOverride = material;
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -41,7 +43,6 @@ public class Bullet : Node
     {
         var b = new Bullet();
         b.start = new Vector3(0, 0, 0);
-        b.end = new Vector3(0, 0, 0);
         Main.instance.AddChild(b);
         return b;
     }
@@ -57,30 +58,99 @@ public class Bullet : Node
     public void AddToDebugDraw()
     {
         if (Main.debugDraw) {
-            debugDrawNode.MaterialOverride = material;
-            debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
-            debugDrawNode.AddVertex(start);
-            debugDrawNode.AddVertex(end);
-            debugDrawNode.End();
+            int index = 0;
+            // bool afterHit = false;
+
+            foreach (List<Vector3> item in stepPoints)
+            {
+                var thisStart = item[0];
+                var thisEnd = item[1];
+
+                debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
+                // if (index % 2 == 0) {
+                //     debugDrawNode.SetColor(Colors.Red);
+                //     afterHit = true;
+                // } else {
+                //     if (afterHit) {
+                //         debugDrawNode.SetColor(Colors.Orange);
+                //     } else {
+                //         debugDrawNode.SetColor(Colors.Green);
+                //     }
+                // }
+                debugDrawNode.AddVertex(thisStart);
+                debugDrawNode.AddVertex(thisEnd);
+                debugDrawNode.End();
+                index++;
+            }
         }
     }
 
     public void CalcProjectile()
     {
+        spaceState = Main.instance.GetWorld().DirectSpaceState;
         var camera = Main.camera;
-        var screenCenter = GetViewport().Size / 2;
-        end = start + camera.ProjectRayNormal(screenCenter);
+        var end = start + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * distance;
+        calcProjectileStepForward(start, end);
+    }
 
-        var spaceState = Main.instance.GetWorld().DirectSpaceState;
+    public void calcProjectileStepForward(Vector3 start, Vector3 origEnd)
+    {
         // {
-        //     position: Vector2 # point in world space for collision
-        //     normal: Vector2 # normal in world space for collision
+        //     position: Vector3 # point in world space for collision
+        //     normal: Vector3 # normal in world space for collision
         //     collider: Object # Object collided or null (if unassociated)
         //     collider_id: ObjectID # Object it collided against
         //     rid: RID # RID it collided against
         //     shape: int # shape index of collider
         //     metadata: Variant() # metadata of collider
         // }
-        var hit = spaceState.IntersectRay(start, end);
+        var hit = spaceState.IntersectRay(start, origEnd);
+
+        var end = origEnd;
+        if (hit.Contains("position")) {
+            ProjectSettings.GetSetting("layer_names/3d_physics");
+            var body = (PhysicsBody)hit["collider"];
+            GD.Print(body.CollisionLayer);
+            body.CollisionLayer = (uint)(CollisionMask.LAYER0 | CollisionMask.LAYER19);
+            end = (Vector3)hit["position"];
+            spaceState = Main.instance.GetWorld().DirectSpaceState;
+        }
+
+        // distance -= start.DistanceTo(end) * 500;
+        // if (distance < 0) {
+        //     distance = 0;
+        // }
+
+        // var l = new List<Vector3>();
+        // l.Add(start);
+        // l.Add(end);
+        // stepPoints.Add(l);
+
+        if (distance > 0) {
+            calcProjectileStepBackward(origEnd, end);
+        }
+    }
+
+    public void calcProjectileStepBackward(Vector3 start, Vector3 end)
+    {
+        // {
+        //     position: Vector3 # point in world space for collision
+        //     normal: Vector3 # normal in world space for collision
+        //     collider: Object # Object collided or null (if unassociated)
+        //     collider_id: ObjectID # Object it collided against
+        //     rid: RID # RID it collided against
+        //     shape: int # shape index of collider
+        //     metadata: Variant() # metadata of collider
+        // }
+        var hit = spaceState.IntersectRay(start, end, null, (uint)CollisionMask.LAYER19);
+        GD.Print(hit);
+        if (hit.Contains("position")) {
+            end = (Vector3)hit["position"];
+            distance -= start.DistanceTo(end);
+            var l = new List<Vector3>();
+            l.Add(start);
+            l.Add(end);
+            stepPoints.Add(l);
+        }
     }
 }

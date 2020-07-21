@@ -3,6 +3,11 @@ using System;
 
 public class CameraController : Camera
 {
+    [Export]
+    int gap = 2;
+    [Export]
+    int innerLineLength = 10;
+
     // public override void _Ready()
     // {
     // }
@@ -16,6 +21,7 @@ public class CameraController : Camera
     {
         Main.localPlayer.Connect("rot_camera", this, "RotCamera");
         Main.localPlayer.Connect("move_camera", this, "MoveCamera");
+        Main.localPlayer.Connect("draw_crosshair", this, "DrawCrosshair");
     }
 
     // set cam rotation
@@ -35,5 +41,11 @@ public class CameraController : Camera
         var newTrans = GlobalTransform;
         newTrans.origin = newCamPos;
         GlobalTransform = newTrans;
+    }
+
+    public void DrawCrosshair()
+    {
+        var pos = Helpers.GetScreenCenter();
+        // Main.ui.DrawRect();
     }
 }

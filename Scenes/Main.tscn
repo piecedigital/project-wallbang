@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://Scripts/Main.cs" type="Script" id=1]
 [ext_resource path="res://Scripts/Utility/CameraController.cs" type="Script" id=2]
+[ext_resource path="res://Scenes/UI/UserInterface.tscn" type="PackedScene" id=3]
 
 [node name="Spatial" type="Spatial"]
 script = ExtResource( 1 )
@@ -13,4 +14,9 @@ script = ExtResource( 2 )
 [node name="PlayerInstances" type="Node" parent="."]
 
 [node name="DebugDraw" type="ImmediateGeometry" parent="."]
-layers = 2
+layers = 262144
+
+[node name="DebugDrawPen" type="ImmediateGeometry" parent="."]
+layers = 262144
+
+[node name="UI" parent="." instance=ExtResource( 3 )]

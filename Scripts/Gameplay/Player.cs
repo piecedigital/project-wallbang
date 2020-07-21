@@ -27,6 +27,8 @@ public class Player : KinematicBody
     delegate void rot_camera(Vector3 newCamRot);
     [Signal]
     delegate void move_camera(Vector3 newCamPos);
+    [Signal]
+    delegate void draw_crosshair();
     // changing variables
     float currForwardSpeed = 0;
     float currBackwardSpeed = 0;
@@ -37,7 +39,9 @@ public class Player : KinematicBody
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        cameraPosition.y = 0.96f;
+        if (cameraPosition.y < 1.792) {
+            cameraPosition.y = 1.792f;
+        }
         Input.SetMouseMode(Input.MouseMode.Captured);
     }
 
@@ -88,6 +92,7 @@ public class Player : KinematicBody
         var orig = Transform.origin;
         orig.y += cameraPosition.y;
         EmitSignal("move_camera", orig);
+        EmitSignal("draw_crosshair");
     }
 
     // Custom functions below
