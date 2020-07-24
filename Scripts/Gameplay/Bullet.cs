@@ -12,6 +12,10 @@ public class Bullet : KinematicBody
     Dictionary stepPoints;
     int stepCount = 0;
     PhysicsDirectSpaceState spaceState;
+    PackedScene ball;
+    SpatialMaterial material;
+    SpatialMaterial material2;
+
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -23,19 +27,21 @@ public class Bullet : KinematicBody
         stepPoints = new Dictionary();
 
         debugDrawNode = Main.instance.GetNode("DebugDraw") as ImmediateGeometry;
-        var material = new SpatialMaterial();
+        material = new SpatialMaterial();
         material.FlagsUnshaded = true;
         material.FlagsUsePointSize = true;
         material.FlagsNoDepthTest = true;
         debugDrawNode.MaterialOverride = material;
 
         debugDrawNode2 = Main.instance.GetNode("DebugDrawPen") as ImmediateGeometry;
-        var material2 = new SpatialMaterial();
+        material2 = new SpatialMaterial();
         material2.FlagsUnshaded = true;
         material2.FlagsUsePointSize = true;
         material2.FlagsNoDepthTest = true;
         material2.AlbedoColor = Colors.Red;
         debugDrawNode2.MaterialOverride = material2;
+
+        ball = ResourceLoader.Load<PackedScene>("res://Scenes/Ball.tscn");
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -73,7 +79,6 @@ public class Bullet : KinematicBody
                 Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
                 Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
                 bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
-                // GD.Print("Drawing: ", thisStart, thisEnd);
 
                 if (isPen) {
                     debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
@@ -113,6 +118,12 @@ public class Bullet : KinematicBody
         var hit = spaceState.IntersectRay(start, origEnd);
         var hitEnd = origEnd;
 
+        Spatial ballStart = (Spatial)ball.Instance();
+        ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material;
+        var newTrans = ballStart.Transform;
+        newTrans.origin = start;
+        ballStart.Transform = newTrans;
+        Main.instance.AddChild(ballStart);
         if (hit.Contains("position")) {
             hitEnd = (Vector3)hit["position"];
             distance -= start.DistanceTo(hitEnd);
@@ -123,6 +134,13 @@ public class Bullet : KinematicBody
             if (distance > 0) {
                 CalcProjectileStepBackward(origEnd, hitEnd);
             }
+        } else {
+            Spatial ballEnd = (Spatial)ball.Instance();
+            ballEnd.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material;
+            var newTrans2 = ballEnd.Transform;
+            newTrans2.origin = hitEnd;
+            ballEnd.Transform = newTrans2;
+            Main.instance.AddChild(ballEnd);
         }
 
         var d = new Dictionary();
@@ -147,6 +165,12 @@ public class Bullet : KinematicBody
         var hit = spaceState.IntersectRay(origEnd, bulletEntry, null, (uint)Wallbang.CollisionMask.LAYER19);
         Vector3 bulletExit = bulletEntry;
 
+        Spatial ballStart = (Spatial)ball.Instance();
+        ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material2;
+        var newTrans = ballStart.Transform;
+        newTrans.origin = bulletEntry;
+        ballStart.Transform = newTrans;
+        Main.instance.AddChild(ballStart);
         if (hit.Contains("position")) {
             bulletExit = (Vector3)hit["position"];
             distance -= bulletEntry.DistanceTo(bulletExit);
