@@ -1,31 +1,41 @@
 using Godot;
-using System.Collections.Generic;
+using Godot.Collections;
+// using System.Collections.Generic;
 
-public class Bullet : Node
+public class Bullet : KinematicBody
 {
     ImmediateGeometry debugDrawNode;
-    SpatialMaterial material;
-    Vector3 start;
+    ImmediateGeometry debugDrawNode2;
+    Vector3 bulletStartPos;
     bool calcDone = false;
     float distance = 1000.0f;
-    List<List<Vector3>> stepPoints;
+    Dictionary stepPoints;
+    int stepCount = 0;
     PhysicsDirectSpaceState spaceState;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        if (start == null) {
-            start = new Vector3();
+        if (bulletStartPos == null) {
+            bulletStartPos = new Vector3();
         }
 
-        stepPoints = new List<List<Vector3>>();
+        stepPoints = new Dictionary();
 
         debugDrawNode = Main.instance.GetNode("DebugDraw") as ImmediateGeometry;
-        material = new SpatialMaterial();
+        var material = new SpatialMaterial();
         material.FlagsUnshaded = true;
         material.FlagsUsePointSize = true;
         material.FlagsNoDepthTest = true;
         debugDrawNode.MaterialOverride = material;
+
+        debugDrawNode2 = Main.instance.GetNode("DebugDrawPen") as ImmediateGeometry;
+        var material2 = new SpatialMaterial();
+        material2.FlagsUnshaded = true;
+        material2.FlagsUsePointSize = true;
+        material2.FlagsNoDepthTest = true;
+        material2.AlbedoColor = Colors.Red;
+        debugDrawNode2.MaterialOverride = material2;
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -42,7 +52,7 @@ public class Bullet : Node
     public static Bullet Fire()
     {
         var b = new Bullet();
-        b.start = new Vector3(0, 0, 0);
+        b.bulletStartPos = new Vector3(0, 0, 0);
         Main.instance.AddChild(b);
         return b;
     }
@@ -50,7 +60,7 @@ public class Bullet : Node
     public static Bullet Fire(Vector3 start)
     {
         var b = new Bullet();
-        b.start = start;
+        b.bulletStartPos = start;
         Main.instance.AddChild(b);
         return b;
     }
@@ -58,29 +68,24 @@ public class Bullet : Node
     public void AddToDebugDraw()
     {
         if (Main.debugDraw) {
-            int index = 0;
-            // bool afterHit = false;
-
-            foreach (List<Vector3> item in stepPoints)
+            for (int i = 0; i < stepCount; i++)
             {
-                var thisStart = item[0];
-                var thisEnd = item[1];
+                Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
+                Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
+                bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
+                // GD.Print("Drawing: ", thisStart, thisEnd);
 
-                debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
-                // if (index % 2 == 0) {
-                //     debugDrawNode.SetColor(Colors.Red);
-                //     afterHit = true;
-                // } else {
-                //     if (afterHit) {
-                //         debugDrawNode.SetColor(Colors.Orange);
-                //     } else {
-                //         debugDrawNode.SetColor(Colors.Green);
-                //     }
-                // }
-                debugDrawNode.AddVertex(thisStart);
-                debugDrawNode.AddVertex(thisEnd);
-                debugDrawNode.End();
-                index++;
+                if (isPen) {
+                    debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
+                    debugDrawNode2.AddVertex(thisStart);
+                    debugDrawNode2.AddVertex(thisEnd);
+                    debugDrawNode2.End();
+                } else {
+                    debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
+                    debugDrawNode.AddVertex(thisStart);
+                    debugDrawNode.AddVertex(thisEnd);
+                    debugDrawNode.End();
+                }
             }
         }
     }
@@ -89,11 +94,12 @@ public class Bullet : Node
     {
         spaceState = Main.instance.GetWorld().DirectSpaceState;
         var camera = Main.camera;
-        var end = start + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * distance;
-        calcProjectileStepForward(start, end);
+        var end = bulletStartPos + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * distance;
+        GD.Print("Initial distance: ", bulletStartPos.DistanceTo(end));
+        CalcProjectileStepForward(bulletStartPos, end);
     }
 
-    public void calcProjectileStepForward(Vector3 start, Vector3 origEnd)
+    public void CalcProjectileStepForward(Vector3 start, Vector3 origEnd)
     {
         // {
         //     position: Vector3 # point in world space for collision
@@ -105,33 +111,29 @@ public class Bullet : Node
         //     metadata: Variant() # metadata of collider
         // }
         var hit = spaceState.IntersectRay(start, origEnd);
+        var hitEnd = origEnd;
 
-        var end = origEnd;
         if (hit.Contains("position")) {
-            ProjectSettings.GetSetting("layer_names/3d_physics");
+            hitEnd = (Vector3)hit["position"];
+            distance -= start.DistanceTo(hitEnd);
             var body = (PhysicsBody)hit["collider"];
-            GD.Print(body.CollisionLayer);
-            body.CollisionLayer = (uint)(CollisionMask.LAYER0 | CollisionMask.LAYER19);
-            end = (Vector3)hit["position"];
+            body.CollisionLayer = (uint)(Wallbang.CollisionMask.LAYER0 | Wallbang.CollisionMask.LAYER19);
             spaceState = Main.instance.GetWorld().DirectSpaceState;
+
+            if (distance > 0) {
+                CalcProjectileStepBackward(origEnd, hitEnd);
+            }
         }
 
-        // distance -= start.DistanceTo(end) * 500;
-        // if (distance < 0) {
-        //     distance = 0;
-        // }
-
-        // var l = new List<Vector3>();
-        // l.Add(start);
-        // l.Add(end);
-        // stepPoints.Add(l);
-
-        if (distance > 0) {
-            calcProjectileStepBackward(origEnd, end);
-        }
+        var d = new Dictionary();
+        d["start"] = start;
+        d["end"] = hitEnd;
+        d["isPen"] = false;
+        AddStep(d);
+        GD.Print("Bullet travel: ", start, hitEnd);
     }
 
-    public void calcProjectileStepBackward(Vector3 start, Vector3 end)
+    public void CalcProjectileStepBackward(Vector3 origEnd, Vector3 bulletEntry)
     {
         // {
         //     position: Vector3 # point in world space for collision
@@ -142,15 +144,29 @@ public class Bullet : Node
         //     shape: int # shape index of collider
         //     metadata: Variant() # metadata of collider
         // }
-        var hit = spaceState.IntersectRay(start, end, null, (uint)CollisionMask.LAYER19);
-        GD.Print(hit);
+        var hit = spaceState.IntersectRay(origEnd, bulletEntry, null, (uint)Wallbang.CollisionMask.LAYER19);
+        Vector3 bulletExit = bulletEntry;
+
         if (hit.Contains("position")) {
-            end = (Vector3)hit["position"];
-            distance -= start.DistanceTo(end);
-            var l = new List<Vector3>();
-            l.Add(start);
-            l.Add(end);
-            stepPoints.Add(l);
+            bulletExit = (Vector3)hit["position"];
+            distance -= bulletEntry.DistanceTo(bulletExit);
+            var body = (PhysicsBody)hit["collider"];
+            body.CollisionLayer = (uint)Wallbang.CollisionMask.LAYER0;
+
+            var d = new Dictionary();
+            d["start"] = bulletExit;
+            d["end"] = bulletEntry;
+            d["isPen"] = true;
+            AddStep(d);
+            GD.Print("Bullet penetration: ", bulletExit, bulletEntry);
+
+            CalcProjectileStepForward(bulletExit, origEnd);
         }
+    }
+
+    public void AddStep(Dictionary d)
+    {
+        stepPoints[stepCount] = d;
+        stepCount++;
     }
 }
