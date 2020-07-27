@@ -7,10 +7,8 @@ public class Bullet : KinematicBody
     ImmediateGeometry debugDrawNode;
     ImmediateGeometry debugDrawNode2;
     Vector3 bulletStartPos;
-    Vector3 bulletEndPos;
-    Vector3 bulletPos;
     bool calcDone = false;
-    float travelDistanceLimit = 1000.0f;
+    float distance = 1000.0f;
     Dictionary stepPoints;
     int stepCount = 0;
     PhysicsDirectSpaceState spaceState;
@@ -18,8 +16,6 @@ public class Bullet : KinematicBody
     SpatialMaterial material;
     SpatialMaterial material2;
     Array<PhysicsBody> collisionList;
-    int penLimit = 10;
-    int pens = 0;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -27,12 +23,6 @@ public class Bullet : KinematicBody
         if (bulletStartPos == null) {
             bulletStartPos = new Vector3();
         }
-
-        if (bulletEndPos == null) {
-            bulletEndPos = new Vector3();
-        }
-
-        bulletPos = bulletStartPos;
 
         stepPoints = new Dictionary();
         collisionList = new Array<PhysicsBody>();
@@ -59,6 +49,7 @@ public class Bullet : KinematicBody
     public override void _Process(float delta)
     {
         if (!calcDone) {
+            GD.Print("Bang!");
             CalcProjectile();
             calcDone = true;
             RestorePrimaryLayer();
@@ -90,7 +81,7 @@ public class Bullet : KinematicBody
                 Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
                 Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
                 bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
-                GD.Print("Points: ", thisStart, thisEnd);
+
                 if (isPen) {
                     debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
                     debugDrawNode2.AddVertex(thisStart);
@@ -110,12 +101,13 @@ public class Bullet : KinematicBody
     {
         spaceState = Main.instance.GetWorld().DirectSpaceState;
         var camera = Main.camera;
-        bulletEndPos = bulletStartPos + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * travelDistanceLimit;
-
-        CalcProjectileStepForward();
+        bulletStartPos = bulletStartPos + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * 4;
+        var end = bulletStartPos + camera.ProjectRayNormal(Helpers.GetScreenCenter()) * distance;
+        GD.Print("Initial distance: ", bulletStartPos.DistanceTo(end));
+        CalcProjectileStepForward(bulletStartPos, end);
     }
 
-    public void CalcProjectileStepForward()
+    public void CalcProjectileStepForward(Vector3 start, Vector3 origEnd)
     {
         // {
         //     position: Vector3 # point in world space for collision
@@ -126,35 +118,51 @@ public class Bullet : KinematicBody
         //     shape: int # shape index of collider
         //     metadata: Variant() # metadata of collider
         // }
-        var hit = spaceState.IntersectRay(bulletStartPos, bulletEndPos, null, (uint)Wallbang.CollisionMask.LAYER0, true, true);
-        var hitPosition = bulletEndPos;
-        // GD.Print(hit);
+        // var shape = new SphereShape();
+        // shape.Radius = 0.025f;
+        // // shape. = 0.025f;
+        // PhysicsShapeQueryParameters shapeQuery = new PhysicsShapeQueryParameters();
+        // shapeQuery.SetShape(shape);
+        // var shapeHit = spaceState.IntersectShape(shapeQuery);
+        // GD.Print("Heck heck: ", shapeHit);
+        var hit = spaceState.IntersectRay(start, origEnd, null, (uint)Wallbang.CollisionMask.LAYER0, true, true);
+        var hitEnd = origEnd;
 
+        // Spatial ballStart = (Spatial)ball.Instance();
+        // ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material;
+        // var newTrans = ballStart.Transform;
+        // newTrans.origin = start;
+        // ballStart.Transform = newTrans;
+        // Main.instance.AddChild(ballStart);
         if (hit.Contains("position")) {
-            hitPosition = (Vector3)hit["position"];
-            // hit position is ahead of bullet
-            if (hitPosition.DistanceTo(bulletEndPos) < bulletPos.DistanceTo(bulletEndPos)) {
-                AddBall(hitPosition);
-                AddStep(bulletPos, hitPosition, false);
-                bulletPos = hitPosition;
-            }
-            var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
-
+            hitEnd = (Vector3)hit["position"];
+            distance -= start.DistanceTo(hitEnd);
             var body = (PhysicsBody)hit["collider"];
             body.CollisionLayer = (uint)(Wallbang.CollisionMask.LAYER19);
             collisionList.Add(body);
-
             // spaceState = Main.instance.GetWorld().DirectSpaceState;
 
-            if (distanceTraveled <= travelDistanceLimit) {
-                CalcProjectileStepBackward();
+            if (distance > 0) {
+                CalcProjectileStepBackward(origEnd, hitEnd);
             }
         } else {
-            AddStep(bulletPos, hitPosition, false);
+            // Spatial ballEnd = (Spatial)ball.Instance();
+            // ballEnd.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material;
+            // var newTrans2 = ballEnd.Transform;
+            // newTrans2.origin = hitEnd;
+            // ballEnd.Transform = newTrans2;
+            // Main.instance.AddChild(ballEnd);
         }
+
+        var d = new Dictionary();
+        d["start"] = start;
+        d["end"] = hitEnd;
+        d["isPen"] = false;
+        AddStep(d);
+        // GD.Print("Bullet travel: ", start, hitEnd);
     }
 
-    public void CalcProjectileStepBackward()
+    public void CalcProjectileStepBackward(Vector3 origEnd, Vector3 bulletEntry)
     {
         // {
         //     position: Vector3 # point in world space for collision
@@ -165,51 +173,35 @@ public class Bullet : KinematicBody
         //     shape: int # shape index of collider
         //     metadata: Variant() # metadata of collider
         // }
-        var hit = spaceState.IntersectRay(bulletEndPos, bulletPos, null, (uint)Wallbang.CollisionMask.LAYER19);
-        Vector3 bulletExit = bulletPos;
-        // GD.Print(hit);
+        var hit = spaceState.IntersectRay(origEnd, bulletEntry, null, (uint)Wallbang.CollisionMask.LAYER19);
+        Vector3 bulletExit = bulletEntry;
 
+        // Spatial ballStart = (Spatial)ball.Instance();
+        // ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = material2;
+        // var newTrans = ballStart.Transform;
+        // newTrans.origin = bulletEntry;
+        // ballStart.Transform = newTrans;
+        // Main.instance.AddChild(ballStart);
         if (hit.Contains("position")) {
             bulletExit = (Vector3)hit["position"];
-            AddBall(bulletExit, true);
-            // var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
-            // var penetrationDistance = bulletExit.DistanceTo(bulletPos);
+            distance -= bulletEntry.DistanceTo(bulletExit);
             var body = (PhysicsBody)hit["collider"];
 
-            AddStep(bulletExit, bulletPos, true);
+            var d = new Dictionary();
+            d["start"] = bulletExit;
+            d["end"] = bulletEntry;
+            d["isPen"] = true;
+            AddStep(d);
+            // GD.Print("Bullet penetration: ", bulletExit, bulletEntry);
 
-            bulletPos = bulletExit;
-
-            // if (pens < penLimit) {
-                CalcProjectileStepForward();
-            //     pens++;
-            // }
+            CalcProjectileStepForward(bulletExit, origEnd);
         }
-    }
-
-    public void AddStep(Vector3 start, Vector3 end, bool isPen)
-    {
-        var d = new Dictionary();
-        d["start"] = start;
-        d["end"] = end;
-        d["isPen"] = isPen;
-        AddStep(d);
     }
 
     public void AddStep(Dictionary d)
     {
         stepPoints[stepCount] = d;
         stepCount++;
-    }
-
-    public void AddBall(Vector3 pos, bool isPen = false)
-    {
-        Spatial ballStart = (Spatial)ball.Instance();
-        ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = isPen ? material2 : material;
-        var newTrans = ballStart.Transform;
-        newTrans.origin = pos;
-        ballStart.Transform = newTrans;
-        Main.instance.AddChild(ballStart);
     }
 
     public void RestorePrimaryLayer()

@@ -1,9 +1,10 @@
 [gd_scene load_steps=2 format=2]
 
 [sub_resource type="SphereMesh" id=1]
+radius = 0.025
+height = 0.05
 
 [node name="Ball" type="Spatial"]
 
 [node name="CSGMesh" type="CSGMesh" parent="."]
-transform = Transform( 0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 0, 0 )
 mesh = SubResource( 1 )

@@ -18,8 +18,6 @@ public class Bullet : KinematicBody
     SpatialMaterial material;
     SpatialMaterial material2;
     Array<PhysicsBody> collisionList;
-    int penLimit = 10;
-    int pens = 0;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -90,7 +88,7 @@ public class Bullet : KinematicBody
                 Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
                 Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
                 bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
-                GD.Print("Points: ", thisStart, thisEnd);
+
                 if (isPen) {
                     debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
                     debugDrawNode2.AddVertex(thisStart);
@@ -128,14 +126,11 @@ public class Bullet : KinematicBody
         // }
         var hit = spaceState.IntersectRay(bulletStartPos, bulletEndPos, null, (uint)Wallbang.CollisionMask.LAYER0, true, true);
         var hitPosition = bulletEndPos;
-        // GD.Print(hit);
 
         if (hit.Contains("position")) {
             hitPosition = (Vector3)hit["position"];
-            // hit position is ahead of bullet
+
             if (hitPosition.DistanceTo(bulletEndPos) < bulletPos.DistanceTo(bulletEndPos)) {
-                AddBall(hitPosition);
-                AddStep(bulletPos, hitPosition, false);
                 bulletPos = hitPosition;
             }
             var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
@@ -144,14 +139,14 @@ public class Bullet : KinematicBody
             body.CollisionLayer = (uint)(Wallbang.CollisionMask.LAYER19);
             collisionList.Add(body);
 
-            // spaceState = Main.instance.GetWorld().DirectSpaceState;
+            spaceState = Main.instance.GetWorld().DirectSpaceState;
 
-            if (distanceTraveled <= travelDistanceLimit) {
+            if (distanceTraveled >= travelDistanceLimit) {
                 CalcProjectileStepBackward();
             }
-        } else {
-            AddStep(bulletPos, hitPosition, false);
         }
+
+        AddStep(bulletStartPos, hitPosition, true);
     }
 
     public void CalcProjectileStepBackward()
@@ -167,23 +162,17 @@ public class Bullet : KinematicBody
         // }
         var hit = spaceState.IntersectRay(bulletEndPos, bulletPos, null, (uint)Wallbang.CollisionMask.LAYER19);
         Vector3 bulletExit = bulletPos;
-        // GD.Print(hit);
 
         if (hit.Contains("position")) {
             bulletExit = (Vector3)hit["position"];
-            AddBall(bulletExit, true);
-            // var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
-            // var penetrationDistance = bulletExit.DistanceTo(bulletPos);
+            var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
             var body = (PhysicsBody)hit["collider"];
 
             AddStep(bulletExit, bulletPos, true);
 
             bulletPos = bulletExit;
 
-            // if (pens < penLimit) {
-                CalcProjectileStepForward();
-            //     pens++;
-            // }
+            CalcProjectileStepForward();
         }
     }
 
@@ -191,7 +180,7 @@ public class Bullet : KinematicBody
     {
         var d = new Dictionary();
         d["start"] = start;
-        d["end"] = end;
+        d["end"] = start;
         d["isPen"] = isPen;
         AddStep(d);
     }
