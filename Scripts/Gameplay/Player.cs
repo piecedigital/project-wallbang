@@ -137,10 +137,9 @@ public class Player : KinematicBody
         movement.z = Mathf.Clamp(Mathf.RoundToInt(currZSpeed), -1, 1);
         movement.x = Mathf.Clamp(Mathf.RoundToInt(currXSpeed), -1, 1);
 
-        var vvv = new Vector3(0, 1, 0);
         movement = movement
             .Normalized()
-            .Rotated(vvv, Rotation.y);
+            .Rotated(Vector3.Up, Rotation.y);
 
         var currSpeed = Mathf.Max(Mathf.Abs(currZSpeed), Mathf.Abs(currXSpeed));
         movement *= currSpeed;
@@ -162,7 +161,7 @@ public class Player : KinematicBody
         }
 
         movement.y = yVelocity;
-        MoveAndSlide(movement, vvv);
+        MoveAndSlide(movement, Vector3.Up);
 
         // TODO: make real animations and play them
         if (justJumped) {

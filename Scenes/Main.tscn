@@ -6,6 +6,7 @@
 
 [node name="Spatial" type="Spatial"]
 script = ExtResource( 1 )
+debugDraw = false
 
 [node name="Camera" type="Camera" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -4.76837e-07, 5.35398, 12.2424 )

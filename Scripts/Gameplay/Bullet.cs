@@ -4,6 +4,8 @@ using Godot.Collections;
 
 public class Bullet : KinematicBody
 {
+    public static Bullet bullet;
+
     ImmediateGeometry debugDrawNode;
     ImmediateGeometry debugDrawNode2;
     Vector3 bulletStartPos;
@@ -11,14 +13,16 @@ public class Bullet : KinematicBody
     Vector3 bulletPos;
     bool calcDone = false;
     float travelDistanceLimit = 1000.0f;
-    Dictionary stepPoints;
-    int stepCount = 0;
     PhysicsDirectSpaceState spaceState;
-    PackedScene ball;
     SpatialMaterial material;
     SpatialMaterial material2;
     Array<PhysicsBody> collisionList;
     int penLimit = 10;
+    PackedScene decal;
+
+    // changing variables
+    Dictionary stepPoints;
+    int stepCount = 0;
     int pens = 0;
 
     // Called when the node enters the scene tree for the first time.
@@ -29,13 +33,15 @@ public class Bullet : KinematicBody
         }
 
         if (bulletEndPos == null) {
-            bulletEndPos = new Vector3();
+            bulletEndPos = bulletStartPos;
         }
 
         bulletPos = bulletStartPos;
 
         stepPoints = new Dictionary();
         collisionList = new Array<PhysicsBody>();
+
+        decal = ResourceLoader.Load<PackedScene>("res://Scenes/Decals/BulletHole.tscn");
 
         debugDrawNode = Main.instance.GetNode("DebugDraw") as ImmediateGeometry;
         material = new SpatialMaterial();
@@ -51,8 +57,6 @@ public class Bullet : KinematicBody
         material2.FlagsNoDepthTest = true;
         material2.AlbedoColor = Colors.Red;
         debugDrawNode2.MaterialOverride = material2;
-
-        ball = ResourceLoader.Load<PackedScene>("res://Scenes/Ball.tscn");
     }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -62,46 +66,50 @@ public class Bullet : KinematicBody
             CalcProjectile();
             calcDone = true;
             RestorePrimaryLayer();
-            AddToDebugDraw();
+            if (Main.instance.debugDraw) {
+                AddToDebugDraw();
+            }
         }
-    }
-
-    public static Bullet Fire()
-    {
-        var b = new Bullet();
-        b.bulletStartPos = new Vector3(0, 0, 0);
-        Main.instance.AddChild(b);
-        return b;
     }
 
     public static Bullet Fire(Vector3 start)
     {
-        var b = new Bullet();
-        b.bulletStartPos = start;
-        Main.instance.AddChild(b);
-        return b;
+        GD.Print("Fire!");
+        if (bullet == null) {
+            bullet = new Bullet();
+            Main.instance.AddChild(bullet);
+        }
+        // reset changing variables;
+        bullet.bulletPos = bullet.bulletStartPos = bullet.bulletEndPos = start;
+        bullet.pens = 0;
+        bullet.calcDone = false;
+
+        if (Main.instance.debugDraw) {
+            bullet.stepPoints.Clear();
+            bullet.stepCount = 0;
+        }
+
+        return bullet;
     }
 
     public void AddToDebugDraw()
     {
-        if (Main.debugDraw) {
-            for (int i = 0; i < stepCount; i++)
-            {
-                Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
-                Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
-                bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
-                GD.Print("Points: ", thisStart, thisEnd);
-                if (isPen) {
-                    debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
-                    debugDrawNode2.AddVertex(thisStart);
-                    debugDrawNode2.AddVertex(thisEnd);
-                    debugDrawNode2.End();
-                } else {
-                    debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
-                    debugDrawNode.AddVertex(thisStart);
-                    debugDrawNode.AddVertex(thisEnd);
-                    debugDrawNode.End();
-                }
+        for (int i = 0; i < stepCount; i++)
+        {
+            Vector3 thisStart = (Vector3)((Dictionary)stepPoints[i])["start"];
+            Vector3 thisEnd = (Vector3)((Dictionary)stepPoints[i])["end"];
+            bool isPen = (bool)((Dictionary)stepPoints[i])["isPen"];
+            GD.Print("Points: ", thisStart, thisEnd);
+            if (isPen) {
+                debugDrawNode2.Begin(Mesh.PrimitiveType.LineStrip, null);
+                debugDrawNode2.AddVertex(thisStart);
+                debugDrawNode2.AddVertex(thisEnd);
+                debugDrawNode2.End();
+            } else {
+                debugDrawNode.Begin(Mesh.PrimitiveType.LineStrip, null);
+                debugDrawNode.AddVertex(thisStart);
+                debugDrawNode.AddVertex(thisEnd);
+                debugDrawNode.End();
             }
         }
     }
@@ -128,14 +136,15 @@ public class Bullet : KinematicBody
         // }
         var hit = spaceState.IntersectRay(bulletStartPos, bulletEndPos, null, (uint)Wallbang.CollisionMask.LAYER0, true, true);
         var hitPosition = bulletEndPos;
-        // GD.Print(hit);
 
         if (hit.Contains("position")) {
             hitPosition = (Vector3)hit["position"];
+            AddBulletHole(hitPosition, bulletStartPos);
             // hit position is ahead of bullet
             if (hitPosition.DistanceTo(bulletEndPos) < bulletPos.DistanceTo(bulletEndPos)) {
-                AddBall(hitPosition);
-                AddStep(bulletPos, hitPosition, false);
+                if (Main.instance.debugDraw) {
+                    AddStep(bulletPos, hitPosition, false);
+                }
                 bulletPos = hitPosition;
             }
             var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
@@ -148,7 +157,9 @@ public class Bullet : KinematicBody
                 CalcProjectileStepBackward();
             }
         } else {
-            AddStep(bulletPos, hitPosition, false);
+            if (Main.instance.debugDraw) {
+                AddStep(bulletPos, hitPosition, false);
+            }
         }
     }
 
@@ -165,16 +176,16 @@ public class Bullet : KinematicBody
         // }
         var hit = spaceState.IntersectRay(bulletEndPos, bulletPos, null, (uint)Wallbang.CollisionMask.LAYER19);
         Vector3 bulletExit = bulletPos;
-        GD.Print(hit);
 
         if (hit.Contains("position")) {
             bulletExit = (Vector3)hit["position"];
-            AddBall(bulletExit, true);
             // var distanceTraveled = bulletStartPos.DistanceTo(bulletPos);
             // var penetrationDistance = bulletExit.DistanceTo(bulletPos);
             var body = (PhysicsBody)hit["collider"];
 
-            AddStep(bulletExit, bulletPos, true);
+            if (Main.instance.debugDraw) {
+                AddStep(bulletExit, bulletPos, true);
+            }
 
             bulletPos = bulletExit;
         }
@@ -200,20 +211,20 @@ public class Bullet : KinematicBody
         stepCount++;
     }
 
-    public void AddBall(Vector3 pos, bool isPen = false)
-    {
-        Spatial ballStart = (Spatial)ball.Instance();
-        ballStart.GetNode<CSGMesh>("CSGMesh").MaterialOverride = isPen ? material2 : material;
-        var newTrans = ballStart.Transform;
-        newTrans.origin = pos;
-        ballStart.Transform = newTrans;
-        Main.instance.AddChild(ballStart);
-    }
-
     public void RestorePrimaryLayer()
     {
         foreach (PhysicsBody body in collisionList) {
             body.CollisionLayer = (uint)Wallbang.CollisionMask.LAYER0;
         }
+    }
+
+    public void AddBulletHole(Vector3 hitPosition, Vector3 lookAt)
+    {
+        MeshInstance bulletHoleDecal = (MeshInstance)decal.Instance();
+        var newTrans = bulletHoleDecal.Transform;
+        newTrans.origin = hitPosition;
+        bulletHoleDecal.Transform = newTrans;
+        Main.instance.AddChild(bulletHoleDecal);
+        bulletHoleDecal.LookAt(lookAt, Vector3.Up);
     }
 }

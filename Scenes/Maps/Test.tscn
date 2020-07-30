@@ -1,7 +1,11 @@
-[gd_scene load_steps=51 format=2]
+[gd_scene load_steps=61 format=2]
 
+[ext_resource path="res://addons/decals/decal.shader" type="Shader" id=1]
 [ext_resource path="res://Materials/m-Default-dark.tres" type="Material" id=2]
 [ext_resource path="res://Materials/m-Default.tres" type="Material" id=3]
+[ext_resource path="res://icon.png" type="Texture" id=4]
+[ext_resource path="res://Scenes/Decals/BulletHole.tscn" type="PackedScene" id=5]
+[ext_resource path="res://HDR/abandoned_tank_farm_04_1k.hdr" type="Texture" id=6]
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 1, 1, 1 )
@@ -325,6 +329,42 @@ surfaces/0 = {
 "skeleton_aabb": [  ],
 "vertex_count": 6316
 }
+
+[sub_resource type="GIProbeData" id=51]
+bounds = AABB( -29.9666, -28.8822, -37.399, 59.9332, 57.7643, 74.7981 )
+cell_size = 0.58436
+to_cell_xform = Transform( 1.71127, 0, 0, 0, 1.71127, 0, 0, 0, 1.71127, 51.2811, 49.4253, 64 )
+dynamic_data = PoolIntArray( 0, 8, 128, 128, 128, 1, 0, 0, 0, 1056964608, 1059760811, 1056964608, 1051372203, 1056964608, 1065353216, 1056964608, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 8355711, 0 )
+dynamic_range = 4
+energy = 0.1
+bias = 1.5
+normal_bias = 0.0
+propagation = 0.7
+
+[sub_resource type="BakedLightmapData" id=54]
+bounds = AABB( -20.0125, -17.6497, -20.4278, 40.025, 35.2994, 40.8555 )
+cell_space_transform = Transform( 4, 0, 0, 0, 4, 0, 0, 0, 4, 80.05, 70.5989, 81.711 )
+cell_subdiv = 9
+octree = PoolByteArray( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 )
+
+[sub_resource type="ShaderMaterial" id=55]
+shader = ExtResource( 1 )
+shader_param/offset = Vector2( 0, 0 )
+shader_param/scale = Vector2( 1, 1 )
+shader_param/emulate_lighting = true
+shader_param/brightness = 0.0
+shader_param/decal = ExtResource( 4 )
+
+[sub_resource type="CubeMesh" id=56]
+material = SubResource( 55 )
+
+[sub_resource type="PanoramaSky" id=52]
+panorama = ExtResource( 6 )
+
+[sub_resource type="Environment" id=53]
+background_mode = 2
+background_sky = SubResource( 52 )
+background_sky_custom_fov = 50.1
 
 [node name="stage base" type="Spatial"]
 
@@ -701,3 +741,66 @@ material/0 = null
 transform = Transform( 100, 0, 0, 0, -1.19209e-05, 100, 0, -100, -1.19209e-05, -9.52283, 0.303308, -12.5098 )
 mesh = SubResource( 48 )
 material/0 = null
+
+[node name="Lighting" type="Spatial" parent="."]
+
+[node name="OmniLight" type="OmniLight" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -7.96634, 7.8709, -8.45585 )
+light_bake_mode = 2
+shadow_enabled = true
+shadow_bias = -0.04
+shadow_contact = 0.02
+shadow_reverse_cull_face = true
+omni_range = 22.3
+omni_attenuation = 2.92818
+
+[node name="OmniLight2" type="OmniLight" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 8.69932, 7.8709, -8.45585 )
+light_bake_mode = 2
+shadow_enabled = true
+shadow_bias = -0.04
+shadow_contact = 0.02
+shadow_reverse_cull_face = true
+omni_range = 22.3
+omni_attenuation = 2.92818
+
+[node name="OmniLight3" type="OmniLight" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 8.69932, 7.8709, 8.37522 )
+light_bake_mode = 2
+shadow_enabled = true
+shadow_bias = -0.04
+shadow_contact = 0.02
+shadow_reverse_cull_face = true
+omni_range = 22.3
+omni_attenuation = 2.92818
+
+[node name="OmniLight4" type="OmniLight" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -7.84228, 7.8709, 8.37522 )
+light_bake_mode = 2
+shadow_enabled = true
+shadow_bias = -0.04
+shadow_contact = 0.02
+shadow_reverse_cull_face = true
+omni_range = 22.3
+omni_attenuation = 2.92818
+
+[node name="GIProbe" type="GIProbe" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 16.1403, 0 )
+visible = false
+extents = Vector3( 29.9666, 28.8822, 37.399 )
+energy = 0.1
+data = SubResource( 51 )
+
+[node name="BakedLightmap" type="BakedLightmap" parent="Lighting"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15.6172, 0 )
+bake_quality = 2
+bake_hdr = true
+bake_extents = Vector3( 20.0125, 17.6497, 20.4278 )
+light_data = SubResource( 54 )
+
+[node name="BulletHole" parent="Lighting/BakedLightmap" instance=ExtResource( 5 )]
+transform = Transform( 0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.01, -1.69102, -15.2148, 5.16419 )
+mesh = SubResource( 56 )
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Lighting"]
+environment = SubResource( 53 )

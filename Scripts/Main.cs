@@ -6,7 +6,8 @@ public class Main : Spatial
 {
     public static Main instance;
     public static Player localPlayer = null;
-    public static bool debugDraw = true;
+    [Export]
+    public bool debugDraw = true;
     public static CameraController camera;
     public static Control ui;
 

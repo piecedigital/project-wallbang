@@ -24,6 +24,10 @@ config/icon="res://icon.png"
 window/size/width=1280
 window/size/height=720
 
+[editor_plugins]
+
+enabled=PoolStringArray( "decals" )
+
 [input]
 
 kb_forward={
@@ -70,4 +74,5 @@ fire={
 
 [rendering]
 
+quality/shadow_atlas/size=7616
 environment/default_environment="res://default_env.tres"
